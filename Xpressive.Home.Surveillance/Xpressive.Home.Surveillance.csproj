@@ -1,0 +1,31 @@
+﻿<Project Sdk="Meadow.Sdk/1.1.0">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <OutputType>Library</OutputType>
+    <AssemblyName>App</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Meadow.F7" Version="1.14.0" />
+    <PackageReference Include="Meadow.Foundation" Version="1.14.0" />
+    <PackageReference Include="Meadow.Foundation.Web.Maple.Client" Version="1.14.0" />
+    <PackageReference Include="Meadow.Foundation.Web.Maple.Server" Version="1.14.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Xpressive.Home.Surveillance.Core\Xpressive.Home.Surveillance.Core.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Update="app.build.yaml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="app.config.yaml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="meadow.config.yaml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="wifi.config.yaml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+</Project>

@@ -1,0 +1,12 @@
+﻿﻿Logging:
+  LogLevel:
+    Default: "Information"
+Lifecycle:
+  ResetOnAppFailure: true
+  AppFailureRestartDelaySeconds: 10
+Settings:
+  Sms:
+    UserName: ""
+    Password: ""
+    Originator: ""
+    Recipients: ""
