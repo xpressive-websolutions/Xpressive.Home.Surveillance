@@ -30,11 +30,4 @@ namespace Xpressive.Home.Surveillance
             }
         }
     }
-
-    public class RemoteDeviceWithValidation : RemoteDevice
-    {
-        public bool IsValidNonce { get; set; }
-        public string LastSeen => (DateTime.UtcNow - LastResponse).TotalMinutes + " minutes ago";
-        public DateTime LastPublicKeyChanged { get; set; }
-    }
 }

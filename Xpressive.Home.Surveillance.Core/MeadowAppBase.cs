@@ -40,7 +40,7 @@ namespace Xpressive.Home.Surveillance.Core
             _mapleServer = new MapleServer(ipAddress, advertise: true);
             _mapleServer.Start();
 
-            //Device.WatchdogEnable(TimeSpan.FromSeconds(10));
+            Device.WatchdogEnable(TimeSpan.FromSeconds(10));
 
             await base.Initialize();
         }
