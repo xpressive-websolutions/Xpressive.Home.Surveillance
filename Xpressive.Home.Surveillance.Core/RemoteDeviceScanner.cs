@@ -117,7 +117,7 @@ namespace Xpressive.Home.Surveillance.Core
                 }
                 catch (Exception e)
                 {
-                    Resolver.Log.Error($"Unable to deserialize: {e.Message}");
+                    Resolver.Log.Error($"Unable to deserialize: {e.Message} (Remote device: {server.IpAddress})");
                 }
             }
         }

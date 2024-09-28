@@ -2,9 +2,8 @@
 
 namespace Xpressive.Home.Surveillance.Core
 {
-    public class MainControllerDeviceStatus
+    public class MainControllerDeviceStatus : RemoteDeviceDto
     {
-        public DeviceType DeviceType { get; set; }
         public bool IsArmed { get; set; }
         public List<RemoteDevice> SurveillanceDevices { get; set; }
         public List<RemoteDevice> AlarmingDevices { get; set; }

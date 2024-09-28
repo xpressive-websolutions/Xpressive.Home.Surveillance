@@ -10,7 +10,7 @@ using Xpressive.Home.Surveillance.Core;
 namespace Xpressive.Home.Surveillance.Device
 {
     // Change F7FeatherV2 to F7FeatherV1 for V1.x boards
-    public class MeadowApp : MeadowAppBase<F7FeatherV1>
+    public class MeadowApp : MeadowAppBase<F7FeatherV2>
     {
         private static readonly SemaphoreSlim _alarmSemaphore = new SemaphoreSlim(1);
         private IPwmPort _buzzerPort;
@@ -22,7 +22,7 @@ namespace Xpressive.Home.Surveillance.Device
             InitBuzzer(Device.Pins.D02);
 
             var deviceName = Settings["Settings.DeviceName"];
-            SurveillanceDevice.Instance.Init(Device, deviceName, PublicKey);
+            SurveillanceDevice.Instance.Init(Device, deviceName, PublicKey, GetNonce);
             SurveillanceDevice.Instance.Alarm += (_, alarmType) => Alarm(alarmType);
             MainController.Instance.Run();
             MainController.Instance.Start();

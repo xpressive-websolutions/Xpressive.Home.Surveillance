@@ -20,7 +20,8 @@ namespace Xpressive.Home.Surveillance.Device
                 LastMovementDetected = device.LastMovementDetected,
                 LastGlassBreakageDetected = device.LastGlassBreakageDetected,
                 IsWindowOpen = device.IsWindowOpen,
-                PublicKey = device.PublicKey
+                PublicKey = device.PublicKey,
+                Nonce = device.GetNonce(),
             });
         }
     }

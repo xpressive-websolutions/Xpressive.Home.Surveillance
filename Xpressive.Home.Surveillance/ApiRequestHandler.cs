@@ -21,7 +21,8 @@ namespace Xpressive.Home.Surveillance
                 IsArmed = device.IsArmed,
                 AlarmingDevices = AlarmingDevices.Instance.Devices.Cast<RemoteDevice>().ToList(),
                 SurveillanceDevices = SurveillanceDevices.Instance.Devices.Cast<RemoteDevice>().ToList(),
-
+                PublicKey = string.Empty,
+                Nonce = string.Empty,
             });
         }
 

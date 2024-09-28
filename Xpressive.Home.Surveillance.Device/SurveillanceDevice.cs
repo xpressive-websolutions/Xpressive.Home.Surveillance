@@ -29,12 +29,14 @@ namespace Xpressive.Home.Surveillance.Device
         public bool IsWindowOpen => _isWindowOpen;
         public string DeviceName => _deviceName;
         public string PublicKey { get; private set; }
+        public Func<string> GetNonce { get; private set; }
 
-        public void Init(F7FeatherBase device, string deviceName, string publicKey)
+        public void Init(F7FeatherBase device, string deviceName, string publicKey, Func<string> getNonce)
         {
             Resolver.Log.Info("Initializing hardware...");
 
             PublicKey = publicKey;
+            GetNonce = getNonce;
             _deviceName = deviceName;
 
             InitPirSensor(device, device.Pins.D00);
