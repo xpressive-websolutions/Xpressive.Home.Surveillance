@@ -53,7 +53,14 @@ namespace Xpressive.Home.Surveillance.Core
 
             if (!_wifiAdapter.IsConnected)
             {
-                _wifiAdapter.ConnectToDefaultAccessPoint(TimeSpan.FromMinutes(5), CancellationToken.None);
+                try
+                {
+                    _wifiAdapter.ConnectToDefaultAccessPoint(TimeSpan.FromMinutes(5), CancellationToken.None);
+                }
+                catch (Exception e)
+                {
+                    Resolver.Log.Error(e);
+                }
             }
         }
 

@@ -10,7 +10,7 @@ namespace Xpressive.Home.Surveillance.Alarm
         public override async Task Initialize()
         {
             Resolver.Log.Info("Initializing hardware...");
-            AlarmDevice.Instance.Init(Device, PublicKey, GetNonce);
+            AlarmDevice.Instance.Init(Device);
             await base.Initialize();
         }
     }

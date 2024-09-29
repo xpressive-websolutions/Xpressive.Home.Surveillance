@@ -22,9 +22,8 @@ namespace Xpressive.Home.Surveillance.Device
             InitBuzzer(Device.Pins.D02);
 
             var deviceName = Settings["Settings.DeviceName"];
-            SurveillanceDevice.Instance.Init(Device, deviceName, PublicKey, GetNonce);
+            SurveillanceDevice.Instance.Init(Device, deviceName);
             SurveillanceDevice.Instance.Alarm += (_, alarmType) => Alarm(alarmType);
-            MainController.Instance.Run();
             MainController.Instance.Start();
 
             await base.Initialize();

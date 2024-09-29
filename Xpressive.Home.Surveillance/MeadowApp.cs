@@ -28,8 +28,6 @@ namespace Xpressive.Home.Surveillance
                 SurveillanceDevices.Instance.InvalidNonceDetected += InvalidNonceDetected;
 
                 SmsService.Instance.Init(userName, password, originator, recipients);
-                AlarmingDevices.Instance.Run();
-                SurveillanceDevices.Instance.Run();
 
                 await base.Initialize();
             }
@@ -56,11 +54,6 @@ namespace Xpressive.Home.Surveillance
 
         private async void RemoteDevicePublicKeyChanged(object sender, string ipAddress)
         {
-            foreach (var device in FindDevices(ipAddress))
-            {
-                device.LastPublicKeyChanged = DateTime.UtcNow;
-            }
-
             if (MainController.Instance.IsArmed)
             {
                 await SmsService.Instance.SendSms($"Public Key Changed: {ipAddress}");

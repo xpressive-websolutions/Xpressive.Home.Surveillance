@@ -13,10 +13,8 @@ namespace Xpressive.Home.Surveillance.Alarm
         private static readonly int _preAlarmDurationInSeconds = 30;
         private static readonly int _alarmDurationInSeconds = 300;
 
-        private static readonly Lazy<AlarmDevice> _instance =
-            new Lazy<AlarmDevice>(() => new AlarmDevice());
+        private static readonly Lazy<AlarmDevice> _instance = new(() => new AlarmDevice());
 
-        private Func<string> _getNonce;
         private CancellationTokenSource _cancellationTokenSource = new();
         private IDigitalOutputPort _lightOnlyPort;
         private IDigitalOutputPort _alarmPort;
@@ -24,23 +22,14 @@ namespace Xpressive.Home.Surveillance.Alarm
         private AlarmDevice() { }
 
         public static AlarmDevice Instance => _instance.Value;
-        public string PublicKey { get; private set; }
 
-        public void Init(F7FeatherBase device, string publicKey, Func<string> getNonce)
+        public void Init(F7FeatherBase device)
         {
-            PublicKey = publicKey;
-            _getNonce = getNonce;
-
             var lightOnlyPin = device.Pins.D00;
             var alarmPin = device.Pins.D03;
 
             _lightOnlyPort = device.CreateDigitalOutputPort(lightOnlyPin, initialState: false);
             _alarmPort = device.CreateDigitalOutputPort(alarmPin, initialState: false);
-        }
-
-        public string GetNonce()
-        {
-            return _getNonce?.Invoke() ?? string.Empty;
         }
 
         public async Task Alarm()

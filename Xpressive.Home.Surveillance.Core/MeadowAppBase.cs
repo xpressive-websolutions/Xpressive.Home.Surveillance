@@ -1,8 +1,5 @@
 ﻿using System;
-using System.Linq;
 using System.Net;
-using System.Security.Cryptography;
-using System.Text;
 using System.Threading.Tasks;
 using Meadow;
 using Meadow.Devices;
@@ -16,21 +13,27 @@ namespace Xpressive.Home.Surveillance.Core
         private MapleServer _mapleServer;
         private WifiService _wifiService;
         private OnboardLedService _onboardLedService;
-        private readonly RSACryptoServiceProvider _rsaCryptoServiceProvider;
 
         public OnboardLedService OnboardLedService => _onboardLedService;
-        public string PublicKey { get; }
 
         protected MeadowAppBase()
         {
-            _rsaCryptoServiceProvider = new RSACryptoServiceProvider(512);
-            PublicKey = Convert.ToBase64String(_rsaCryptoServiceProvider.ExportParameters(false).Modulus);
+            Resolver.Services.Create(typeof(InternalMapleClient), typeof(IMapleClient));
+            Resolver.Services.Create(typeof(IdentityService), typeof(IIdentityService));
+            Resolver.Services.Create(typeof(RemoteDeviceScanner), typeof(IRemoteDeviceScanner));
+
+            var crashData = Device.ReliabilityService.GetCrashData();
+            foreach (var crashDataLine in crashData)
+            {
+                Resolver.Log.Info($"Crash Data: {crashDataLine}");
+            }
+            Device.ReliabilityService.ClearCrashData();
         }
 
         public override async Task Initialize()
         {
-            Resolver.Log.Info("Initializing hardware...");
-            Resolver.Log.Info($"PublicKey: {PublicKey}");
+            Resolver.Log.Info($"[{DateTime.Now:dd.MM.yyyy HH:mm:ss}] Initializing hardware...");
+            Resolver.Log.Info($"PublicKey: {Resolver.Services.Get<IIdentityService>().GetPublicKey()}");
 
             _wifiService = new WifiService(Device);
             _onboardLedService = new OnboardLedService(Device);
@@ -40,7 +43,9 @@ namespace Xpressive.Home.Surveillance.Core
             _mapleServer = new MapleServer(ipAddress, advertise: true);
             _mapleServer.Start();
 
-            Device.WatchdogEnable(TimeSpan.FromSeconds(10));
+            ((RemoteDeviceScanner)Resolver.Services.Get<IRemoteDeviceScanner>()).Run();
+
+            Device.WatchdogEnable(TimeSpan.FromSeconds(15));
 
             await base.Initialize();
         }
@@ -51,7 +56,7 @@ namespace Xpressive.Home.Surveillance.Core
             {
                 Device.WatchdogReset();
                 _wifiService.ReconnectIfNecessary();
-                await Task.Delay(TimeSpan.FromSeconds(5));
+                await Task.Delay(TimeSpan.FromSeconds(3));
             }
         }
 
@@ -60,14 +65,6 @@ namespace Xpressive.Home.Surveillance.Core
             Resolver.Log.Error(e);
             OnboardLedService.SetState(OnboardLedStatus.Error);
             return base.OnError(e);
-        }
-
-        public string GetNonce()
-        {
-            var now = DateTime.UtcNow;
-            var sd = Encoding.ASCII.GetBytes(now.ToString("s"));
-            var nonce = Convert.ToBase64String(_rsaCryptoServiceProvider.SignData(sd, SHA256.Create()));
-            return nonce;
         }
 
         private async Task<IPAddress> WaitForIpAddress()

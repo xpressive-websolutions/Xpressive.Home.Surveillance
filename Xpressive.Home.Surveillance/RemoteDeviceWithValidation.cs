@@ -7,7 +7,6 @@ namespace Xpressive.Home.Surveillance
     {
         public bool IsValidNonce { get; set; } = true;
         public string LastSeen => GetLastSeen();
-        public DateTime LastPublicKeyChanged { get; set; }
 
         private string GetLastSeen()
         {

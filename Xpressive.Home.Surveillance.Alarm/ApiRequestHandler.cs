@@ -1,4 +1,5 @@
 ﻿using System.Threading.Tasks;
+using Meadow;
 using Meadow.Foundation.Web.Maple;
 using Meadow.Foundation.Web.Maple.Routing;
 using Xpressive.Home.Surveillance.Core;
@@ -12,11 +13,13 @@ namespace Xpressive.Home.Surveillance.Alarm
         [HttpGet("status")]
         public IActionResult GetStatus()
         {
+            var identityService = Resolver.Services.Get<IIdentityService>();
+
             return new JsonResult(new RemoteDeviceDto
             {
                 DeviceType = DeviceType.AlarmDevice,
-                PublicKey = AlarmDevice.Instance.PublicKey,
-                Nonce = AlarmDevice.Instance.GetNonce(),
+                PublicKey = identityService.GetPublicKey(),
+                Nonce = identityService.GetNonce(),
             });
         }
 

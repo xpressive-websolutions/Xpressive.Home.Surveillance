@@ -5,40 +5,76 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using Meadow;
-using Meadow.Foundation.Serialization;
-using Meadow.Foundation.Web.Maple;
 
 namespace Xpressive.Home.Surveillance.Core
 {
+    internal class RemoteDeviceScanner : IRemoteDeviceScanner
+    {
+        private readonly IMapleClient _mapleClient = Resolver.Services.Get<IMapleClient>();
+        private readonly Dictionary<DeviceType, Action<string, RemoteDeviceDto>> _registrations = new();
+
+        public async void Run()
+        {
+            await Task.Delay(TimeSpan.FromMinutes(1));
+
+            while (true)
+            {
+                await _mapleClient.StartScanningForAdvertisingServers();
+                await DetectDevices();
+
+                await Task.Delay(TimeSpan.FromMinutes(10));
+            }
+        }
+
+        public void RegisterForNewDevices(DeviceType deviceType, Action<string, RemoteDeviceDto> deviceDetected)
+        {
+            _registrations.Add(deviceType, deviceDetected);
+        }
+
+        private async Task DetectDevices()
+        {
+            var servers = _mapleClient.Servers.ToList();
+
+            foreach (var server in servers)
+            {
+                try
+                {
+                    var remoteDevice = await _mapleClient.GetAsync<RemoteDeviceDto>(server.IpAddress, "/api/status");
+
+                    if (remoteDevice == null)
+                    {
+                        continue;
+                    }
+
+                    if (_registrations.TryGetValue(remoteDevice.DeviceType, out var action))
+                    {
+                        action(server.IpAddress, remoteDevice);
+                    }
+                }
+                catch (Exception e)
+                {
+                    Resolver.Log.Error($"Unable to deserialize: {e.Message} (Remote device: {server.IpAddress})");
+                }
+            }
+        }
+    }
+
     public class RemoteDeviceScanner<T>
         where T : RemoteDevice, new()
     {
-        private const int Port = 5417;
-        private readonly MapleClient _mapleClient = new MapleClient(listenTimeout: TimeSpan.FromMinutes(1));
-        private readonly MicroJsonSerializer _serializer = new MicroJsonSerializer();
-        private readonly DeviceType _deviceType;
+        private readonly IMapleClient _mapleClient;
         private readonly Dictionary<string, T> _devices = new(StringComparer.OrdinalIgnoreCase);
 
         public RemoteDeviceScanner(DeviceType deviceType)
         {
-            _deviceType = deviceType;
+            Resolver.Services.Get<IRemoteDeviceScanner>().RegisterForNewDevices(deviceType, DeviceDetected);
+            _mapleClient = Resolver.Services.Get<IMapleClient>();
         }
 
         public event EventHandler<string> PublicKeyChanged;
         public event EventHandler<string> InvalidNonceDetected;
 
         public List<T> Devices => _devices.Values.ToList();
-
-        public async void Run()
-        {
-            while (true)
-            {
-                await _mapleClient.StartScanningForAdvertisingServers();
-                await DetectDevices();
-
-                await Task.Delay(TimeSpan.FromMinutes(1));
-            }
-        }
 
         protected void OnPublicKeyChanged(string ipAddress)
         {
@@ -55,10 +91,9 @@ namespace Xpressive.Home.Surveillance.Core
             return GetAsync<R>(device.IpAddress, endPoint);
         }
 
-        protected async Task<R> GetAsync<R>(string device, string endPoint)
+        protected Task<R> GetAsync<R>(string device, string endPoint)
         {
-            var json = await _mapleClient.GetAsync(device, Port, endPoint);
-            return _serializer.Deserialize<R>(json);
+            return _mapleClient.GetAsync<R>(device, endPoint);
         }
 
         protected Task PostAsync(T device, string endPoint, string data, string contentType = "text/plain")
@@ -66,59 +101,48 @@ namespace Xpressive.Home.Surveillance.Core
             return PostAsync(device.IpAddress, endPoint, data, contentType);
         }
 
-        protected async Task PostAsync(string device, string endPoint, string data, string contentType = "text/plain")
+        protected Task PostAsync(string device, string endPoint, string data, string contentType = "text/plain")
         {
-            await _mapleClient.PostAsync(device, Port, endPoint, data, contentType);
+            return _mapleClient.PostAsync(device, endPoint, data, contentType);
         }
 
-        private async Task DetectDevices()
+        private void DeviceDetected(string ipAddress, RemoteDeviceDto remoteDevice)
         {
-            var servers = _mapleClient.Servers.ToList();
-
-            foreach (var server in servers)
+            try
             {
-                try
+                if (_devices.TryGetValue(ipAddress, out var d))
                 {
-                    var json = await _mapleClient.GetAsync(server.IpAddress, Port, "/api/status");
-                    var remoteDevice = MicroJson.Deserialize<RemoteDeviceDto>(json);
+                    d.LastResponse = DateTime.UtcNow;
 
-                    if (remoteDevice != null && remoteDevice.DeviceType == _deviceType)
+                    if (!d.PublicKey.Equals(remoteDevice.PublicKey, StringComparison.Ordinal))
                     {
-                        if (_devices.TryGetValue(server.IpAddress, out var d))
-                        {
-                            d.LastResponse = DateTime.UtcNow;
+                        OnPublicKeyChanged(ipAddress);
+                    }
 
-                            if (!d.PublicKey.Equals(remoteDevice.PublicKey, StringComparison.Ordinal))
-                            {
-                                OnPublicKeyChanged(server.IpAddress);
-                            }
+                    d.PublicKey = remoteDevice.PublicKey;
+                }
+                else
+                {
+                    _devices.Add(ipAddress, new T
+                    {
+                        IpAddress = ipAddress,
+                        DeviceType = remoteDevice.DeviceType,
+                        LastResponse = DateTime.UtcNow,
+                        PublicKey = remoteDevice.PublicKey,
+                    });
+                }
 
-                            d.PublicKey = remoteDevice.PublicKey;
-                        }
-                        else
-                        {
-                            _devices.Add(server.IpAddress, new T
-                            {
-                                IpAddress = server.IpAddress,
-                                DeviceType = remoteDevice.DeviceType,
-                                LastResponse = DateTime.UtcNow,
-                                PublicKey = remoteDevice.PublicKey,
-                            });
-                        }
-
-                        if (!string.IsNullOrEmpty(remoteDevice.Nonce))
-                        {
-                            if (!IsNonceValid(remoteDevice.PublicKey, remoteDevice.Nonce))
-                            {
-                                OnInvalidNonceDetected(server.IpAddress);
-                            }
-                        }
+                if (!string.IsNullOrEmpty(remoteDevice.Nonce))
+                {
+                    if (!IsNonceValid(remoteDevice.PublicKey, remoteDevice.Nonce))
+                    {
+                        OnInvalidNonceDetected(ipAddress);
                     }
                 }
-                catch (Exception e)
-                {
-                    Resolver.Log.Error($"Unable to deserialize: {e.Message} (Remote device: {server.IpAddress})");
-                }
+            }
+            catch (Exception e)
+            {
+                Resolver.Log.Error($"[DeviceDetected]: {e.Message}");
             }
         }
 

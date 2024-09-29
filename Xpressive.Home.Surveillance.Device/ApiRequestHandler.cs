@@ -1,4 +1,5 @@
-﻿using Meadow.Foundation.Web.Maple;
+﻿using Meadow;
+using Meadow.Foundation.Web.Maple;
 using Meadow.Foundation.Web.Maple.Routing;
 using Xpressive.Home.Surveillance.Core;
 
@@ -12,6 +13,7 @@ namespace Xpressive.Home.Surveillance.Device
         public IActionResult GetStatus()
         {
             var device = SurveillanceDevice.Instance;
+            var identityService = Resolver.Services.Get<IIdentityService>();
 
             return new JsonResult(new SurveillanceDeviceStatus
             {
@@ -20,8 +22,8 @@ namespace Xpressive.Home.Surveillance.Device
                 LastMovementDetected = device.LastMovementDetected,
                 LastGlassBreakageDetected = device.LastGlassBreakageDetected,
                 IsWindowOpen = device.IsWindowOpen,
-                PublicKey = device.PublicKey,
-                Nonce = device.GetNonce(),
+                PublicKey = identityService.GetPublicKey(),
+                Nonce = identityService.GetNonce(),
             });
         }
     }
